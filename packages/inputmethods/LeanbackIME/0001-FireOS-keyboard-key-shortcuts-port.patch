@@ -1,0 +1,27 @@
+diff --git a/src/com/android/inputmethod/leanback/LeanbackKeyboardController.java b/src/com/android/inputmethod/leanback/LeanbackKeyboardController.java
+index 93fc80d..6f37bf0 100644
+--- a/src/com/android/inputmethod/leanback/LeanbackKeyboardController.java
++++ b/src/com/android/inputmethod/leanback/LeanbackKeyboardController.java
+@@ -446,9 +446,11 @@ public class LeanbackKeyboardController implements LeanbackKeyboardContainer.Voi
+             case KeyEvent.KEYCODE_DPAD_DOWN:
+                 handled = onDirectionalMove(LeanbackKeyboardContainer.DIRECTION_DOWN);
+                 break;
++            case KeyEvent.KEYCODE_MEDIA_REWIND:
+             case KeyEvent.KEYCODE_BUTTON_X:
+                 handleCommitKeyboardKey(Keyboard.KEYCODE_DELETE, null);
+                 break;
++            case KeyEvent.KEYCODE_MEDIA_FAST_FORWARD:
+             case KeyEvent.KEYCODE_BUTTON_Y:
+                 handleCommitKeyboardKey(LeanbackKeyboardView.ASCII_SPACE, null);
+                 break;
+@@ -555,6 +557,10 @@ public class LeanbackKeyboardController implements LeanbackKeyboardContainer.Voi
+                 }
+                 mInputListener.onEntry(InputListener.ENTRY_TYPE_DISMISS, 0, null);
+                 break;
++            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
++                mInputListener.onEntry(InputListener.ENTRY_TYPE_ACTION, 0, null);
++                mInputListener.onEntry(InputListener.ENTRY_TYPE_DISMISS, 0, null);
++                break;
+             default:
+                 handled = false;
+                 break;

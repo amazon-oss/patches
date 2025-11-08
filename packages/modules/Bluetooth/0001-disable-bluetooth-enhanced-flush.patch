@@ -1,0 +1,13 @@
+diff --git a/system/gd/hci/controller.cc b/system/gd/hci/controller.cc
+index 10023e3dd9..3cc9cd2383 100644
+--- a/system/gd/hci/controller.cc
++++ b/system/gd/hci/controller.cc
+@@ -977,7 +977,7 @@ LOCAL_FEATURE_ACCESSOR(Supports3SlotEscoEdrPackets, 0, 47)
+ LOCAL_FEATURE_ACCESSOR(SupportsHoldMode, 0, 6)
+ LOCAL_FEATURE_ACCESSOR(SupportsSniffMode, 0, 7)
+ LOCAL_FEATURE_ACCESSOR(SupportsParkMode, 0, 8)
+-LOCAL_FEATURE_ACCESSOR(SupportsNonFlushablePb, 0, 54)
++bool Controller::SupportsNonFlushablePb() const { return false; }
+ LOCAL_FEATURE_ACCESSOR(SupportsSniffSubrating, 0, 41)
+ LOCAL_FEATURE_ACCESSOR(SupportsEncryptionPause, 0, 42)
+ LOCAL_FEATURE_ACCESSOR(SupportsBle, 0, 38)

@@ -1,0 +1,15 @@
+diff --git a/Settings/src/com/android/tv/settings/accessories/BluetoothInputDeviceConnector.java b/Settings/src/com/android/tv/settings/accessories/BluetoothInputDeviceConnector.java
+index 35ee976fd..65f09376e 100644
+--- a/Settings/src/com/android/tv/settings/accessories/BluetoothInputDeviceConnector.java
++++ b/Settings/src/com/android/tv/settings/accessories/BluetoothInputDeviceConnector.java
+@@ -46,6 +46,10 @@ public class BluetoothInputDeviceConnector implements BluetoothDevicePairer.Blue
+             Log.w(TAG, "Service disconnected, perhaps unexpectedly");
+             unregisterInputMethodMonitor();
+             closeInputProfileProxy();
++            if (BluetoothDevicePairer.hasValidInputDevice(mContext)
++                    || (mTarget != null && mTarget.isConnected())) {
++                return;
++            }
+             mOpenConnectionCallback.failed();
+         }
+ 
