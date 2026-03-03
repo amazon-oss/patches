@@ -1,0 +1,62 @@
+From c2c90b6703377abb12d86ccabad70b9134e9973a Mon Sep 17 00:00:00 2001
+From: Ben Grisdale <bengris32@protonmail.ch>
+Date: Tue, 3 Mar 2026 15:16:32 +0000
+Subject: [PATCH] Add overlay to disable SHA256 key management
+
+Some Wi-Fi chipset / driver combinations do not support this.
+
+Change-Id: I9115a2630bcff6a94f9c05b142cfe2654f61e958
+Signed-off-by: Ben Grisdale <bengris32@protonmail.ch>
+---
+ .../com/android/server/wifi/SupplicantStaNetworkHal.java     | 5 ++++-
+ service/res/values/config.xml                                | 4 ++++
+ service/res/values/overlayable.xml                           | 1 +
+ 3 files changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/service/java/com/android/server/wifi/SupplicantStaNetworkHal.java b/service/java/com/android/server/wifi/SupplicantStaNetworkHal.java
+index 68623fb7e..c58894b57 100644
+--- a/service/java/com/android/server/wifi/SupplicantStaNetworkHal.java
++++ b/service/java/com/android/server/wifi/SupplicantStaNetworkHal.java
+@@ -3454,8 +3454,11 @@ public class SupplicantStaNetworkHal {
+             android.hardware.wifi.supplicant.V1_2.ISupplicantStaNetwork
+                     iSupplicantStaNetworkV12;
+             iSupplicantStaNetworkV12 = getV1_2StaNetwork();
+-            if (iSupplicantStaNetworkV12 == null) {
++            if (iSupplicantStaNetworkV12 == null ||
++                !mContext.getResources().getBoolean(
++                    R.bool.config_wifiSha256KeyManagementEnabled)) {
+                 // SHA256 key management requires HALv1.2 or higher
++                // or is disabled by overlay.
+                 return modifiedFlags;
+             }
+ 
+diff --git a/service/res/values/config.xml b/service/res/values/config.xml
+index 0264c3eae..def5f1e36 100644
+--- a/service/res/values/config.xml
++++ b/service/res/values/config.xml
+@@ -46,6 +46,10 @@
+     <!-- Boolean indicating whether 802.11r Fast BSS Transition is enabled on this platform -->
+     <bool translatable="false" name="config_wifi_fast_bss_transition_enabled">false</bool>
+ 
++    <!-- Boolean indicating whether SHA256 key management is enabled on this platform.
++         Some Wi-Fi chipsets / driver combinations do not support this feature. -->
++    <bool translatable="false" name="config_wifiSha256KeyManagementEnabled">true</bool>
++
+     <!-- Device type information conforming to Annex B format in WiFi Direct specification.
+          The default represents a dual-mode smartphone -->
+     <string translatable="false" name="config_wifi_p2p_device_type">10-0050F204-5</string>
+diff --git a/service/res/values/overlayable.xml b/service/res/values/overlayable.xml
+index 60764ba6e..52fd44d9c 100644
+--- a/service/res/values/overlayable.xml
++++ b/service/res/values/overlayable.xml
+@@ -26,6 +26,7 @@
+           <item type="bool" name="config_wifiFrameworkMaxNumSpatialStreamDeviceOverrideEnable" />
+           <item type="integer" name="config_wifiFrameworkMaxNumSpatialStreamDeviceOverrideValue" />
+           <item type="bool" name="config_wifi_fast_bss_transition_enabled" />
++          <item type="bool" name="config_wifiSha256KeyManagementEnabled" />
+           <item type="string" name="config_wifi_p2p_device_type" />
+           <item type="bool" name="config_wifi_background_scan_support" />
+           <item type="bool" name="config_wifi_revert_country_code_on_cellular_loss" />
+-- 
+2.53.0
+
