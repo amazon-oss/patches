@@ -1,0 +1,34 @@
+From 425d0059c0b84ee8633b4d8a6f23d026729b6df7 Mon Sep 17 00:00:00 2001
+From: R0rt1z2 <roger@r0rt1z2.com>
+Date: Thu, 16 Apr 2026 16:20:43 +0200
+Subject: [PATCH] fdsan: default to WARN_ONCE instead of FATAL
+
+Devices with older vendor blobs hit fdsan aborts when vendor code
+calls raw close() on fds the framework has tagged via unique_fd
+(e.g. libMtkOmxVenc's Fence destructor).
+
+Setting debug.fdsan=warn_once via build.prop doesn't seem to take
+effect for native services started early by init, so lower the
+compiled-in default instead.
+
+Change-Id: I68f49b21c5e78229ddb981c9124b56df760afea2
+---
+ libc/bionic/fdsan.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/libc/bionic/fdsan.cpp b/libc/bionic/fdsan.cpp
+index 4b89918..6d38659 100644
+--- a/libc/bionic/fdsan.cpp
++++ b/libc/bionic/fdsan.cpp
+@@ -108,7 +108,7 @@ FdEntry* FdTableImpl<inline_fds>::at(size_t idx) {
+ }
+ 
+ void __libc_init_fdsan() {
+-  constexpr auto default_level = ANDROID_FDSAN_ERROR_LEVEL_FATAL;
++  constexpr auto default_level = ANDROID_FDSAN_ERROR_LEVEL_WARN_ONCE;
+   android_fdsan_set_error_level_from_property(default_level);
+ }
+ 
+-- 
+2.47.3
+
