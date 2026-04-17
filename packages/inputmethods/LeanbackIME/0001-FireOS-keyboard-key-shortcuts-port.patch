@@ -1,3 +1,13 @@
+From fe865588f3302c7e737afdcde3a241a3d50c3f4d Mon Sep 17 00:00:00 2001
+From: Florian Schmidt <flo.schmidt10@gmail.com>
+Date: Fri, 17 Apr 2026 11:38:01 +0200
+Subject: [PATCH 1/1] Add FireOS keyboard key shortcuts
+
+Change-Id: Ic56a7cdede8b256d1bcc321094d0f2eb5bbd164c
+---
+ .../inputmethod/leanback/LeanbackKeyboardController.java    | 6 ++++++
+ 1 file changed, 6 insertions(+)
+
 diff --git a/src/com/android/inputmethod/leanback/LeanbackKeyboardController.java b/src/com/android/inputmethod/leanback/LeanbackKeyboardController.java
 index 93fc80d..6f37bf0 100644
 --- a/src/com/android/inputmethod/leanback/LeanbackKeyboardController.java
@@ -25,3 +35,6 @@ index 93fc80d..6f37bf0 100644
              default:
                  handled = false;
                  break;
+-- 
+2.47.3
+

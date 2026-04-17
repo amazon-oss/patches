@@ -1,5 +1,18 @@
+From e3dfaa23f64c8b251dd19b98992eda2650b43025 Mon Sep 17 00:00:00 2001
+From: Florian Schmidt <flo.schmidt10@gmail.com>
+Date: Fri, 17 Apr 2026 11:40:19 +0200
+Subject: [PATCH 1/1] Don't assume bluetooth input pairing failure if device is
+ connected
+
+Fixes the initial setup wizard thinking the BT remote did not pair successfully. Normal settings always worked despite the same bug
+
+Change-Id: I69a5294e62339367d0c21fdbdfcaffa89080ad4b
+---
+ .../settings/accessories/BluetoothInputDeviceConnector.java   | 4 ++++
+ 1 file changed, 4 insertions(+)
+
 diff --git a/Settings/src/com/android/tv/settings/accessories/BluetoothInputDeviceConnector.java b/Settings/src/com/android/tv/settings/accessories/BluetoothInputDeviceConnector.java
-index 35ee976fd..65f09376e 100644
+index 1e6820ff4..c2655acf6 100644
 --- a/Settings/src/com/android/tv/settings/accessories/BluetoothInputDeviceConnector.java
 +++ b/Settings/src/com/android/tv/settings/accessories/BluetoothInputDeviceConnector.java
 @@ -46,6 +46,10 @@ public class BluetoothInputDeviceConnector implements BluetoothDevicePairer.Blue
@@ -13,3 +26,6 @@ index 35ee976fd..65f09376e 100644
              mOpenConnectionCallback.failed();
          }
  
+-- 
+2.47.3
+

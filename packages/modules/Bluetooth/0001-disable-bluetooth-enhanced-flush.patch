@@ -1,3 +1,13 @@
+From f5b3dca8d8c77a88962b10ed9d86bcad0e5f6505 Mon Sep 17 00:00:00 2001
+From: Florian Schmidt <flo.schmidt10@gmail.com>
+Date: Fri, 17 Apr 2026 11:42:25 +0200
+Subject: [PATCH 1/1] Disable bluetooth enhanced flush
+
+Change-Id: I4462be290bcd19ac29864f9c2bb5953a8ca73f63
+---
+ system/gd/hci/controller.cc | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
 diff --git a/system/gd/hci/controller.cc b/system/gd/hci/controller.cc
 index 10023e3dd9..3cc9cd2383 100644
 --- a/system/gd/hci/controller.cc
@@ -11,3 +21,6 @@ index 10023e3dd9..3cc9cd2383 100644
  LOCAL_FEATURE_ACCESSOR(SupportsSniffSubrating, 0, 41)
  LOCAL_FEATURE_ACCESSOR(SupportsEncryptionPause, 0, 42)
  LOCAL_FEATURE_ACCESSOR(SupportsBle, 0, 38)
+-- 
+2.47.3
+
