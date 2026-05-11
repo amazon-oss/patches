@@ -1,0 +1,32 @@
+From 79f85b4c01073545bb1e1d60f48db61a5857fd67 Mon Sep 17 00:00:00 2001
+From: Han Wang <416810799@qq.com>
+Date: Mon, 11 May 2026 21:55:05 +0200
+Subject: [PATCH 1/1] media: Do not crash on TimeCheck timeout
+
+ * This gets triggered on 10 too often for various devices.
+   The timeout value seems too aggressive, let us not crash
+   audio service for good UX.
+
+ * eg: TimeCheck timeout for IAudioPolicyService command 8
+
+Change-Id: Iea517cc1e97ba7efe6dd8462619ae09f1486f8da
+---
+ media/utils/TimeCheck.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/media/utils/TimeCheck.cpp b/media/utils/TimeCheck.cpp
+index 819e146..46a4ec8 100644
+--- a/media/utils/TimeCheck.cpp
++++ b/media/utils/TimeCheck.cpp
+@@ -132,7 +132,7 @@ bool TimeCheck::TimeCheckThread::threadLoop()
+                 ALOGI("No HAL process pid available, skipping tombstones");
+             }
+             LOG_EVENT_STRING(LOGTAG_AUDIO_BINDER_TIMEOUT, tag);
+-            LOG_ALWAYS_FATAL("TimeCheck timeout for %s", tag);
++            // LOG_ALWAYS_FATAL("TimeCheck timeout for %s", tag);
+         }
+     }
+     return true;
+-- 
+2.47.3
+
