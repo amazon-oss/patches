@@ -29,7 +29,7 @@ while IFS= read -r patch; do
         if [ -d ".git/rebase-apply" ]; then
             git am --abort || true
         fi
-        git reset --hard m/lineage-18.1
+        git reset --hard m/lineage-20.0
     )
 done < <(find "$SCRIPT_DIR" -type f -name "*.patch" -not -path "*/.git/*" | sort)
 
