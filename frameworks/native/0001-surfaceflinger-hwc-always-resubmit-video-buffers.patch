@@ -1,0 +1,73 @@
+From 38d37bcb09bad4f7fe1b58217a64566aab387961 Mon Sep 17 00:00:00 2001
+From: Florian Schmidt <flo.schmidt10@gmail.com>
+Date: Wed, 13 May 2026 17:41:43 +0200
+Subject: [PATCH 1/1] Always resubmit video buffers to HWC (disabled by default/flag gated)
+
+Change-Id: I8a0dca0b863b1cc9af77758c30bae2c532b11f99
+---
+ services/surfaceflinger/Android.bp            | 20 +++++++++++++++++++
+ .../CompositionEngine/src/OutputLayer.cpp     |  7 +++++++
+ 2 files changed, 27 insertions(+)
+
+diff --git a/services/surfaceflinger/Android.bp b/services/surfaceflinger/Android.bp
+index 7548380a58..3da651e9fd 100644
+--- a/services/surfaceflinger/Android.bp
++++ b/services/surfaceflinger/Android.bp
+@@ -7,6 +7,23 @@ package {
+     default_applicable_licenses: ["frameworks_native_license"],
+ }
+ 
++soong_config_module_type {
++    name: "surfaceflinger_workarounds_cc_defaults",
++    module_type: "cc_defaults",
++    config_namespace: "surfaceflinger_workarounds",
++    bool_variables: ["force_hwc_buffer_resubmit_video"],
++    properties: ["cppflags"],
++}
++
++surfaceflinger_workarounds_cc_defaults {
++    name: "surfaceflinger_workarounds_defaults",
++    soong_config_variables: {
++        force_hwc_buffer_resubmit_video: {
++            cppflags: ["-DSF_FORCE_HWC_BUFFER_RESUBMIT_VIDEO=1"],
++        },
++    },
++}
++
+ cc_defaults {
+     name: "surfaceflinger_defaults",
+     cflags: [
+@@ -19,6 +36,9 @@ cc_defaults {
+         "-Wunreachable-code",
+         "-Wconversion",
+     ],
++    defaults: [
++        "surfaceflinger_workarounds_defaults",
++    ]
+ }
+ 
+ cc_defaults {
+diff --git a/services/surfaceflinger/CompositionEngine/src/OutputLayer.cpp b/services/surfaceflinger/CompositionEngine/src/OutputLayer.cpp
+index 2129dfed29..c65713e38d 100644
+--- a/services/surfaceflinger/CompositionEngine/src/OutputLayer.cpp
++++ b/services/surfaceflinger/CompositionEngine/src/OutputLayer.cpp
+@@ -649,6 +649,13 @@ void OutputLayer::writeBufferStateToHWC(HWC2::Layer* hwcLayer,
+     // We need access to the output-dependent state for the buffer cache there,
+     // though otherwise the buffer is not output-dependent.
+     editState().hwc->hwcBufferCache.getHwcBuffer(slot, buffer, &hwcSlot, &hwcBuffer);
++#ifdef SF_FORCE_HWC_BUFFER_RESUBMIT_VIDEO
++    if (CC_UNLIKELY(buffer && (buffer->getUsage() & 0x00400000) != 0 &&
++        slot >= 0 && slot != HwcBufferCache::FLATTENER_CACHING_SLOT )) {
++        // 0x400000 seems to indicate (hwardware decoded) video layers (private MTK usage bit)
++        ALOGV("SF_FORCE_HWC_BUFFER_RESUBMIT_VIDEO layer=%s fmt=%d usage=0x%" PRIx64 " ds=%d",
++            getLayerFE().getDebugName(), buffer->getPixelFormat(), (uint64_t)buffer->getUsage(),
++            (int)outputIndependentState.dataspace);
++        hwcBuffer = buffer;
++    }
++#endif
+ 
+     if (auto error = hwcLayer->setBuffer(hwcSlot, hwcBuffer, acquireFence);
+         error != hal::Error::NONE) {
+-- 
+2.47.3
+
