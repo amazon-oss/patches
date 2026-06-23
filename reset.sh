@@ -4,6 +4,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+BRANCH="$(git -C "$SCRIPT_DIR" rev-parse --abbrev-ref HEAD)"
 
 declare -A SEEN
 
@@ -29,7 +30,7 @@ while IFS= read -r patch; do
         if [ -d ".git/rebase-apply" ]; then
             git am --abort || true
         fi
-        git reset --hard m/lineage-18.1
+        git reset --hard "m/$BRANCH"
     )
 done < <(find "$SCRIPT_DIR" -type f -name "*.patch" -not -path "*/.git/*" | sort)
 
