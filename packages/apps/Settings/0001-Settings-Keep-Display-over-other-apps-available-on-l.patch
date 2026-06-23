@@ -1,0 +1,36 @@
+From 39aaaa2ed866f96283755d157a5ada3371251eb8 Mon Sep 17 00:00:00 2001
+From: R0rt1z2 <roger@r0rt1z2.com>
+Date: Wed, 24 Jun 2026 01:41:58 +0200
+Subject: [PATCH] Settings: Keep "Display over other apps" available on low-RAM
+ devices
+
+AOSP hides the SYSTEM_ALERT_WINDOW settings UI on Go/low-RAM devices,
+but the appop still works and can be toggled manually. Always report
+it as enabled so the screen stays usable.
+
+Change-Id: I794929268fe4949dbe34133ca1f6be588fa116f4
+---
+ src/com/android/settings/Utils.java | 7 ++++---
+ 1 file changed, 4 insertions(+), 3 deletions(-)
+
+diff --git a/src/com/android/settings/Utils.java b/src/com/android/settings/Utils.java
+index 95d6546..7ad2962 100644
+--- a/src/com/android/settings/Utils.java
++++ b/src/com/android/settings/Utils.java
+@@ -1060,9 +1060,10 @@ public final class Utils extends com.android.settingslib.Utils {
+      * Starting from Q, SYSTEM_ALERT_WINDOW is disabled on low ram phones.
+      */
+     public static boolean isSystemAlertWindowEnabled(Context context) {
+-        // SYSTEM_ALERT_WINDOW is disabled on on low ram devices starting from Q
+-        ActivityManager am = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+-        return !(am.isLowRamDevice() && (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q));
++        // AOSP hides the "Display over other apps" UI on low-RAM (Go) devices,
++        // but the SYSTEM_ALERT_WINDOW appop still works (it can be toggled via
++        // adb), so keep the settings screen available regardless of low-RAM.
++        return true;
+     }
+ 
+     /**
+-- 
+2.47.3
+
