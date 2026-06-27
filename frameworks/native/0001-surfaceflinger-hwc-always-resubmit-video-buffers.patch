@@ -6,8 +6,8 @@ Subject: [PATCH 1/1] Always resubmit video buffers to HWC (disabled by default/f
 Change-Id: I8a0dca0b863b1cc9af77758c30bae2c532b11f99
 ---
  services/surfaceflinger/Android.bp            | 20 +++++++++++++++++++
- .../CompositionEngine/src/OutputLayer.cpp     |  7 +++++++
- 2 files changed, 27 insertions(+)
+ .../CompositionEngine/src/OutputLayer.cpp     | 10 ++++++++++
+ 2 files changed, 30 insertions(+)
 
 diff --git a/services/surfaceflinger/Android.bp b/services/surfaceflinger/Android.bp
 index 7548380a58..3da651e9fd 100644
@@ -48,10 +48,10 @@ index 7548380a58..3da651e9fd 100644
  
  cc_defaults {
 diff --git a/services/surfaceflinger/CompositionEngine/src/OutputLayer.cpp b/services/surfaceflinger/CompositionEngine/src/OutputLayer.cpp
-index 2129dfed29..c65713e38d 100644
+index 2129dfed29..092381d883 100644
 --- a/services/surfaceflinger/CompositionEngine/src/OutputLayer.cpp
 +++ b/services/surfaceflinger/CompositionEngine/src/OutputLayer.cpp
-@@ -649,6 +649,13 @@ void OutputLayer::writeBufferStateToHWC(HWC2::Layer* hwcLayer,
+@@ -649,6 +649,16 @@ void OutputLayer::writeBufferStateToHWC(HWC2::Layer* hwcLayer,
      // We need access to the output-dependent state for the buffer cache there,
      // though otherwise the buffer is not output-dependent.
      editState().hwc->hwcBufferCache.getHwcBuffer(slot, buffer, &hwcSlot, &hwcBuffer);
