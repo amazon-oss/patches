@@ -1,0 +1,64 @@
+From 29b849058b0238e8edd2512530643a87d8322f18 Mon Sep 17 00:00:00 2001
+From: Brian Valcarcel <bval@google.com>
+Date: Wed, 16 Apr 2025 18:44:22 +0000
+Subject: [PATCH] Change default preview delay to 400ms
+
+--- use 200ms instead, original patch msg below ---
+
+The preference focus delay is 320ms. Changing the default to 400ms prevents the preview delay from interrupting the scroll animation.
+
+OEM's can still adjust this value as they wish through the config.
+
+Flag: NONE not needed
+Bug: 355462390
+Change-Id: Ic38f3c2aad26946c9de8cb3fdb25ac85d23f4f7d
+---
+ TwoPanelSettingsLib/res/values/configs.xml             |  2 +-
+ .../tv/twopanelsettings/TwoPanelSettingsFragment.java  | 10 +---------
+ 2 files changed, 2 insertions(+), 10 deletions(-)
+
+diff --git a/TwoPanelSettingsLib/res/values/configs.xml b/TwoPanelSettingsLib/res/values/configs.xml
+index 4cd1a7e7a..1e265de4a 100644
+--- a/TwoPanelSettingsLib/res/values/configs.xml
++++ b/TwoPanelSettingsLib/res/values/configs.xml
+@@ -19,5 +19,5 @@
+     <!-- Whether to check scroll state when creating preview panel fragment -->
+     <bool name="config_check_scroll_state" translatable="false">false</bool>
+     <!-- Delay before creating preview panel fragment -->
+-    <integer name="config_preview_panel_create_delay" translatable="false">0</integer>
++    <integer name="config_preview_panel_create_delay" translatable="false">200</integer>
+ </resources>
+diff --git a/TwoPanelSettingsLib/src/com/android/tv/twopanelsettings/TwoPanelSettingsFragment.java b/TwoPanelSettingsLib/src/com/android/tv/twopanelsettings/TwoPanelSettingsFragment.java
+index 035428b30..34bf1871b 100644
+--- a/TwoPanelSettingsLib/src/com/android/tv/twopanelsettings/TwoPanelSettingsFragment.java
++++ b/TwoPanelSettingsLib/src/com/android/tv/twopanelsettings/TwoPanelSettingsFragment.java
+@@ -107,8 +107,7 @@ public abstract class TwoPanelSettingsFragment extends Fragment implements
+     private static final long PANEL_ANIMATION_ALPHA_MS = 200;
+     private static final long PANEL_BACKGROUND_ANIMATION_ALPHA_MS = 500;
+     private static final long PANEL_ANIMATION_DELAY_MS = 200;
+-    private static final long PREVIEW_PANEL_DEFAULT_DELAY_MS =
+-            ActivityManager.isLowRamDeviceStatic() ? 100 : 0;
++    private static final long PREVIEW_PANEL_DEFAULT_DELAY_MS = 200;
+     private static final boolean DEFAULT_CHECK_SCROLL_STATE =
+             ActivityManager.isLowRamDeviceStatic();
+     private static final long CHECK_IDLE_STATE_MS = 100;
+@@ -194,16 +193,9 @@ public abstract class TwoPanelSettingsFragment extends Fragment implements
+         mPreviewPanelCreationDelay = getContext().getResources()
+                 .getInteger(R.integer.config_preview_panel_create_delay);
+ 
+-        updatePreviewPanelCreationDelayForLowRamDevice();
+         mAudioManager = (AudioManager) getContext().getSystemService(Context.AUDIO_SERVICE);
+     }
+ 
+-    private void updatePreviewPanelCreationDelayForLowRamDevice() {
+-        if (ActivityManager.isLowRamDeviceStatic() && mPreviewPanelCreationDelay == 0) {
+-            mPreviewPanelCreationDelay = PREVIEW_PANEL_DEFAULT_DELAY_MS;
+-        }
+-    }
+-
+     @Override
+     public View onCreateView(LayoutInflater inflater, ViewGroup container,
+             Bundle savedInstanceState) {
+-- 
+2.47.3
+
