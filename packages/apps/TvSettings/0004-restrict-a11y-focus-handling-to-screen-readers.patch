@@ -1,0 +1,101 @@
+From 17e5a236a7643b5e37b0e51e9ad5f1d26f00e205 Mon Sep 17 00:00:00 2001
+From: Florian Schmidt <flo.schmidt10@gmail.com>
+Date: Wed, 1 Jul 2026 18:14:55 +0200
+Subject: [PATCH] Restrict special a11y focus handling to screen reader type
+ services
+
+* Works around bug where focus updates only occur on animation end when navigating back in two panel layout
+* Special focus handling should not be needed for other types of a11y services (see 61ac22344bfe728971f502622a1fc8178833cfa8)
+
+Change-Id: I5785351b9191bd7013d8f7e1ed053eaecad59e68
+---
+ .../tv/twopanelsettings/TwoPanelSettingsFragment.java | 11 ++++++++---
+ .../tv/twopanelsettings/slices/SliceFragment.java     | 11 ++++++++---
+ 2 files changed, 16 insertions(+), 6 deletions(-)
+
+diff --git a/TwoPanelSettingsLib/src/com/android/tv/twopanelsettings/TwoPanelSettingsFragment.java b/TwoPanelSettingsLib/src/com/android/tv/twopanelsettings/TwoPanelSettingsFragment.java
+index 34bf1871b..3fe4d74be 100644
+--- a/TwoPanelSettingsLib/src/com/android/tv/twopanelsettings/TwoPanelSettingsFragment.java
++++ b/TwoPanelSettingsLib/src/com/android/tv/twopanelsettings/TwoPanelSettingsFragment.java
+@@ -20,6 +20,7 @@ import static com.android.tv.twopanelsettings.slices.SlicesConstants.EXTRA_PREFE
+ import static com.android.tv.twopanelsettings.slices.SlicesConstants.EXTRA_PREFERENCE_INFO_TEXT;
+ import static com.android.tv.twopanelsettings.slices.SlicesConstants.EXTRA_PREFERENCE_INFO_TITLE_ICON;
+ 
++import android.accessibilityservice.AccessibilityServiceInfo;
+ import android.animation.Animator;
+ import android.animation.AnimatorListenerAdapter;
+ import android.animation.AnimatorSet;
+@@ -47,6 +48,7 @@ import android.view.MotionEvent;
+ import android.view.View;
+ import android.view.ViewGroup;
+ import android.view.ViewTreeObserver.OnGlobalLayoutListener;
++import android.view.accessibility.AccessibilityManager;
+ import android.view.animation.AnimationUtils;
+ import android.widget.HorizontalScrollView;
+ import android.widget.TextView;
+@@ -78,6 +80,7 @@ import com.android.tv.twopanelsettings.slices.SliceSeekbarPreference;
+ import com.android.tv.twopanelsettings.slices.SliceSwitchPreference;
+ import com.android.tv.twopanelsettings.slices.SlicesConstants;
+ 
++import java.util.List;
+ import java.util.Map;
+ import java.util.Set;
+ 
+@@ -344,9 +347,11 @@ public abstract class TwoPanelSettingsFragment extends Fragment implements
+         if (getActivity() == null) {
+             return false;
+         }
+-        return Settings.Secure.getInt(
+-                getActivity().getContentResolver(),
+-                Settings.Secure.ACCESSIBILITY_ENABLED, 0) == 1;
++        AccessibilityManager accessMan = (AccessibilityManager) getActivity()
++            .getSystemService(Context.ACCESSIBILITY_SERVICE);
++        List<AccessibilityServiceInfo> serviceInfos = accessMan
++            .getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_SPOKEN);
++        return !serviceInfos.isEmpty();
+     }
+ 
+     private void updateAccessibilityTitle(Fragment fragment) {
+diff --git a/TwoPanelSettingsLib/src/com/android/tv/twopanelsettings/slices/SliceFragment.java b/TwoPanelSettingsLib/src/com/android/tv/twopanelsettings/slices/SliceFragment.java
+index f94bb263d..912d1f6f3 100644
+--- a/TwoPanelSettingsLib/src/com/android/tv/twopanelsettings/slices/SliceFragment.java
++++ b/TwoPanelSettingsLib/src/com/android/tv/twopanelsettings/slices/SliceFragment.java
+@@ -26,10 +26,12 @@ import static com.android.tv.twopanelsettings.slices.SlicesConstants.EXTRA_PREFE
+ import static com.android.tv.twopanelsettings.slices.SlicesConstants.EXTRA_PREFERENCE_KEY;
+ import static com.android.tv.twopanelsettings.slices.SlicesConstants.EXTRA_SLICE_FOLLOWUP;
+ 
++import android.accessibilityservice.AccessibilityServiceInfo;
+ import android.app.Activity;
+ import android.app.PendingIntent;
+ import android.app.PendingIntent.CanceledException;
+ import android.app.tvsettings.TvSettingsEnums;
++import android.content.Context;
+ import android.content.ContentProviderClient;
+ import android.content.Intent;
+ import android.content.IntentSender;
+@@ -48,6 +50,7 @@ import android.view.Gravity;
+ import android.view.LayoutInflater;
+ import android.view.View;
+ import android.view.ViewGroup;
++import android.view.accessibility.AccessibilityManager;
+ import android.widget.ImageView;
+ import android.widget.TextView;
+ import android.widget.Toast;
+@@ -356,9 +359,11 @@ public class SliceFragment extends SettingsPreferenceFragment implements Observe
+         if (getActivity() == null) {
+             return false;
+         }
+-        return Settings.Secure.getInt(
+-                getActivity().getContentResolver(),
+-                Settings.Secure.ACCESSIBILITY_ENABLED, 0) == 1;
++        AccessibilityManager accessMan = (AccessibilityManager) getActivity()
++            .getSystemService(Context.ACCESSIBILITY_SERVICE);
++        List<AccessibilityServiceInfo> serviceInfos = accessMan
++            .getEnabledAccessibilityServiceList(AccessibilityServiceInfo.FEEDBACK_SPOKEN);
++        return !serviceInfos.isEmpty();
+     }
+ 
+ 
+-- 
+2.47.3
+
