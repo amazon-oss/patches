@@ -1,0 +1,123 @@
+From eb5dadf6a96739838413e12d1cc791f94a3839b4 Mon Sep 17 00:00:00 2001
+From: Kaiqiang Wang <kaiqw@google.com>
+Date: Mon, 9 Jan 2023 12:05:31 +0100
+Subject: [PATCH] Create TVInputMethodPreference to apply the TV specific
+ logic.
+
+It handles the switch enable/disable logic, which has been removed from
+InputMethodPreference.
+
+Preview
+Before: https://drive.google.com/file/d/1D8eQ3dIRqAf9dpbDNlTO_Mt3qi4fVHhH/view?usp=sharing
+After: https://drive.google.com/open?id=1G2X9fB18KUsoOljG1AjpP1aySP3GWDHg&authuser=0&usp=drive_link
+
+Test: on local ADT4
+Bug: 253171138
+Change-Id: I48110f9424b43496f3433dcea78c364d183a5a43
+---
+ .../AvailableVirtualKeyboardFragment.java     |  8 +--
+ .../inputmethod/TVInputMethodPreference.java  | 52 +++++++++++++++++++
+ 2 files changed, 56 insertions(+), 4 deletions(-)
+ create mode 100644 Settings/src/com/android/tv/settings/inputmethod/TVInputMethodPreference.java
+
+diff --git a/Settings/src/com/android/tv/settings/inputmethod/AvailableVirtualKeyboardFragment.java b/Settings/src/com/android/tv/settings/inputmethod/AvailableVirtualKeyboardFragment.java
+index 5616030db..4e57f0497 100644
+--- a/Settings/src/com/android/tv/settings/inputmethod/AvailableVirtualKeyboardFragment.java
++++ b/Settings/src/com/android/tv/settings/inputmethod/AvailableVirtualKeyboardFragment.java
+@@ -55,7 +55,7 @@ import java.util.List;
+ public final class AvailableVirtualKeyboardFragment extends SettingsPreferenceFragment
+         implements InputMethodPreference.OnSavePreferenceListener {
+ 
+-    private final ArrayList<InputMethodPreference> mInputMethodPreferenceList = new ArrayList<>();
++    private final ArrayList<TVInputMethodPreference> mInputMethodPreferenceList = new ArrayList<>();
+     private InputMethodSettingValuesWrapper mInputMethodSettingValues;
+     private InputMethodManager mImm;
+     private DevicePolicyManager mDpm;
+@@ -141,7 +141,7 @@ public final class AvailableVirtualKeyboardFragment extends SettingsPreferenceFr
+ 
+     private void updateInputMethodPreferenceViews() {
+         mInputMethodSettingValues.refreshAllInputMethodAndSubtypes();
+-        // Clear existing "InputMethodPreference"s
++        // Clear existing "TVInputMethodPreference"s
+         mInputMethodPreferenceList.clear();
+         List<String> permittedList = mDpm.getPermittedInputMethodsForCurrentUser();
+         final Context context = getPreferenceManager().getContext();
+@@ -152,7 +152,7 @@ public final class AvailableVirtualKeyboardFragment extends SettingsPreferenceFr
+             final InputMethodInfo imi = imis.get(i);
+             final boolean isAllowedByOrganization = permittedList == null
+                     || permittedList.contains(imi.getPackageName());
+-            final InputMethodPreference pref = new InputMethodPreference(
++            final TVInputMethodPreference pref = new TVInputMethodPreference(
+                     context, imi, isAllowedByOrganization, this, UserHandle.myUserId());
+             // TODO: Update the icon container in leanback_preference.xml to use LinearLayout.
+             // This is a workaround to avoid the crash. b/146654624
+@@ -164,7 +164,7 @@ public final class AvailableVirtualKeyboardFragment extends SettingsPreferenceFr
+         mInputMethodPreferenceList.sort((lhs, rhs) -> lhs.compareTo(rhs, collator));
+         getPreferenceScreen().removeAll();
+         for (int i = 0; i < numImis; ++i) {
+-            final InputMethodPreference pref = mInputMethodPreferenceList.get(i);
++            final TVInputMethodPreference pref = mInputMethodPreferenceList.get(i);
+             pref.setOrder(i);
+             getPreferenceScreen().addPreference(pref);
+             InputMethodAndSubtypeUtilCompat.removeUnnecessaryNonPersistentPreference(pref);
+diff --git a/Settings/src/com/android/tv/settings/inputmethod/TVInputMethodPreference.java b/Settings/src/com/android/tv/settings/inputmethod/TVInputMethodPreference.java
+new file mode 100644
+index 000000000..fb7353d28
+--- /dev/null
++++ b/Settings/src/com/android/tv/settings/inputmethod/TVInputMethodPreference.java
+@@ -0,0 +1,52 @@
++/*
++ * Copyright (C) 2017 The Android Open Source Project
++ *
++ * Licensed under the Apache License, Version 2.0 (the "License");
++ * you may not use this file except in compliance with the License.
++ * You may obtain a copy of the License at
++ *
++ *      http://www.apache.org/licenses/LICENSE-2.0
++ *
++ * Unless required by applicable law or agreed to in writing, software
++ * distributed under the License is distributed on an "AS IS" BASIS,
++ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
++ * See the License for the specific language governing permissions and
++ * limitations under the License.
++ */
++
++package com.android.tv.settings.inputmethod;
++
++import android.annotation.UserIdInt;
++import android.content.Context;
++import android.view.inputmethod.InputMethodInfo;
++import android.widget.Switch;
++
++import androidx.preference.Preference;
++
++import com.android.settingslib.inputmethod.InputMethodPreference;
++
++/**
++ * Input method preference for Android TV.
++ *
++ * This preference handle the switch logic for TV.
++ */
++public class TVInputMethodPreference extends InputMethodPreference {
++    public TVInputMethodPreference(final Context prefContext, final InputMethodInfo imi,
++            final boolean isAllowedByOrganization,
++            final InputMethodPreference.OnSavePreferenceListener onSaveListener,
++            final @UserIdInt int userId) {
++        super(prefContext, imi, isAllowedByOrganization, onSaveListener, userId);
++    }
++
++    @Override
++    public boolean onPreferenceClick(final Preference preference) {
++        final Switch switchWidget = getSwitch();
++        if (!switchWidget.isEnabled()) {
++            return true;
++        }
++        final boolean newValue = !isChecked();
++        switchWidget.setChecked(isChecked());
++        callChangeListener(newValue);
++        return true;
++    }
++}
+-- 
+2.47.3
+
