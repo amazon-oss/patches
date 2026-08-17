@@ -1,0 +1,31 @@
+From baa82be164921362857759cb5a7c62254669b27e Mon Sep 17 00:00:00 2001
+From: Florian Schmidt <flo.schmidt10@gmail.com>
+Date: Mon, 17 Aug 2026 15:54:54 +0200
+Subject: [PATCH] Disable BLE set privacy mode
+
+Change-Id: Ifbd04bfd3cd58bac9309445191d4b8c5f7bb6072
+---
+ system/gd/hci/le_address_manager.cc | 7 -------
+ 1 file changed, 7 deletions(-)
+
+diff --git a/system/gd/hci/le_address_manager.cc b/system/gd/hci/le_address_manager.cc
+index 3cbc04a86d..7567e6880d 100644
+--- a/system/gd/hci/le_address_manager.cc
++++ b/system/gd/hci/le_address_manager.cc
+@@ -475,13 +475,6 @@ void LeAddressManager::AddDeviceToResolvingList(
+   Command command = {CommandType::ADD_DEVICE_TO_RESOLVING_LIST, HCICommand{std::move(packet_builder)}};
+   cached_commands_.push(std::move(command));
+ 
+-  if (supports_ble_privacy_) {
+-    auto packet_builder =
+-        hci::LeSetPrivacyModeBuilder::Create(peer_identity_address_type, peer_identity_address, PrivacyMode::DEVICE);
+-    Command command = {CommandType::LE_SET_PRIVACY_MODE, HCICommand{std::move(packet_builder)}};
+-    cached_commands_.push(std::move(command));
+-  }
+-
+   // Enable Address resolution
+   auto enable_builder = hci::LeSetAddressResolutionEnableBuilder::Create(hci::Enable::ENABLED);
+   Command enable = {CommandType::SET_ADDRESS_RESOLUTION_ENABLE, HCICommand{std::move(enable_builder)}};
+-- 
+2.47.3
+
