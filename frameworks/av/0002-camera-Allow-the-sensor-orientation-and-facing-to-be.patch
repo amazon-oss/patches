@@ -1,0 +1,50 @@
+From fe5c3d6e45ca96b44a9059ac32bce8cbba732a7f Mon Sep 17 00:00:00 2001
+From: R0rt1z2 <roger@r0rt1z2.com>
+Date: Tue, 25 Aug 2026 01:51:16 +0200
+Subject: [PATCH] camera: Allow the sensor orientation and facing to be
+ overridden
+
+Devices that mount the panel rotated compensate for it in SurfaceFlinger
+via ro.surface_flinger.primary_display_orientation. That happens below
+the framework, so the preview transform never accounts for it and the
+image ends up rotated no matter what the HAL reports.
+
+Let both values be corrected with persist.vendor.camera.orientation and
+persist.vendor.camera.facing.
+
+Change-Id: If9605afbb03e06cec2f5f2b38be9d160632281bf
+---
+ .../common/CameraProviderManager.cpp            | 17 +++++++++++++++++
+ 1 file changed, 17 insertions(+)
+
+diff --git a/services/camera/libcameraservice/common/CameraProviderManager.cpp b/services/camera/libcameraservice/common/CameraProviderManager.cpp
+index 230abb7..4705a45 100644
+--- a/services/camera/libcameraservice/common/CameraProviderManager.cpp
++++ b/services/camera/libcameraservice/common/CameraProviderManager.cpp
+@@ -2401,6 +2401,23 @@ CameraProviderManager::ProviderInfo::DeviceInfo3::DeviceInfo3(const std::string&
+                 __FUNCTION__, strerror(-res), res);
+     }
+ 
++    // Devices with a rotated panel compensate for it in SurfaceFlinger, which
++    // the preview transform does not know about, so allow both values the HAL
++    // reports to be corrected at runtime.
++    {
++        char value[PROPERTY_VALUE_MAX];
++        if (property_get("persist.vendor.camera.orientation", value, nullptr) > 0) {
++            int32_t orientation = atoi(value);
++            mCameraCharacteristics.update(ANDROID_SENSOR_ORIENTATION, &orientation, 1);
++            ALOGI("%s: overriding sensor orientation to %d", __FUNCTION__, orientation);
++        }
++        if (property_get("persist.vendor.camera.facing", value, nullptr) > 0) {
++            uint8_t facing = atoi(value) ? ANDROID_LENS_FACING_FRONT : ANDROID_LENS_FACING_BACK;
++            mCameraCharacteristics.update(ANDROID_LENS_FACING, &facing, 1);
++            ALOGI("%s: overriding lens facing to %d", __FUNCTION__, facing);
++        }
++    }
++
+     camera_metadata_entry flashAvailable =
+             mCameraCharacteristics.find(ANDROID_FLASH_INFO_AVAILABLE);
+     if (flashAvailable.count == 1 &&
+-- 
+2.47.3
+
