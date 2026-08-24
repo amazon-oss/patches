@@ -1,0 +1,52 @@
+From 042673c0b8b316c78d616058bae01308174d27ad Mon Sep 17 00:00:00 2001
+From: R0rt1z2 <roger@r0rt1z2.com>
+Date: Tue, 25 Aug 2026 01:52:14 +0200
+Subject: [PATCH] Camera2: Allow the capture support level to be overridden
+
+Some devices hand back unusable YUV_420_888 images, which leaves the
+app compressing garbage into every photo. Let them ask for JPEG from
+the HAL instead with ro.camera.capture_support_level.
+
+Change-Id: I782b709171db2a9422fd2c85c73b14fff41593c7
+---
+ src_pd/com/android/camera/util/GservicesHelper.java | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/src_pd/com/android/camera/util/GservicesHelper.java b/src_pd/com/android/camera/util/GservicesHelper.java
+index 12ae56a..be0a9be 100644
+--- a/src_pd/com/android/camera/util/GservicesHelper.java
++++ b/src_pd/com/android/camera/util/GservicesHelper.java
+@@ -18,6 +18,7 @@ package com.android.camera.util;
+ 
+ import android.content.ContentResolver;
+ import android.content.Context;
++import android.os.SystemProperties;
+ 
+ public class GservicesHelper {
+ 
+@@ -37,12 +38,20 @@ public class GservicesHelper {
+         return false;
+     }
+ 
++    /**
++     * Devices whose gralloc and camera HAL disagree on the YUV_420_888 layout
++     * hand back unusable images, so let them ask for JPEG from the HAL instead.
++     */
++    private static int getCaptureSupportLevelOverride() {
++        return SystemProperties.getInt("ro.camera.capture_support_level", -1);
++    }
++
+     public static int getCaptureSupportLevelOverrideBack(ContentResolver contentResolver) {
+-        return -1;
++        return getCaptureSupportLevelOverride();
+     }
+ 
+     public static int getCaptureSupportLevelOverrideFront(ContentResolver contentResolver) {
+-        return -1;
++        return getCaptureSupportLevelOverride();
+     }
+ 
+     public static int getMaxAllowedNativeMemoryMb(ContentResolver contentResolver) {
+-- 
+2.47.3
+
