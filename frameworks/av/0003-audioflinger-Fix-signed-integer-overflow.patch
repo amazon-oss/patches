@@ -1,0 +1,33 @@
+From fd56e81552f10daf76187532a9b6367dfb932864 Mon Sep 17 00:00:00 2001
+From: Dean Wheatley <dwhea@dolby.com>
+Date: Fri, 6 Nov 2020 23:52:21 +1100
+Subject: [PATCH] Fix signed integer overflow
+
+The operation "mRsmpInRear += framesRead;" would overflow
+the 32-bit variables within 12 minutes for MSD HAL StreamIn IEC61937
+MAT 2.0 framed streams (that generate 61440 bytes per 20 milliseconds).
+
+Test: enable integer_overflow diagnostics, enable MSD HAL with IEC
+      MAT patch, wait for 12 minutes for UBSan crash, and check record
+      thread frame counts have exceeded 2^31.
+Change-Id: I9925bf39a1e3d910850efef859e0a412962391ac
+---
+ services/audioflinger/Threads.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/services/audioflinger/Threads.cpp b/services/audioflinger/Threads.cpp
+index 384ddb5..b143388 100644
+--- a/services/audioflinger/Threads.cpp
++++ b/services/audioflinger/Threads.cpp
+@@ -7429,7 +7429,7 @@ bool AudioFlinger::RecordThread::threadLoop()
+                         (framesRead - part1) * mFrameSize);
+             }
+         }
+-        rear = mRsmpInRear += framesRead;
++        mRsmpInRear = audio_utils::safe_add_overflow(mRsmpInRear, (int32_t)framesRead);
+ 
+         size = activeTracks.size();
+ 
+-- 
+2.47.3
+
