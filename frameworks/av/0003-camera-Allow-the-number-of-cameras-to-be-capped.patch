@@ -1,0 +1,43 @@
+From 60cfb5b10fbce356f47ba4f75085397ec9abe7c1 Mon Sep 17 00:00:00 2001
+From: R0rt1z2 <roger@r0rt1z2.com>
+Date: Fri, 4 Sep 2026 01:37:22 +0200
+Subject: [PATCH] camera: Allow the number of cameras to be capped
+
+Some HALs enumerate a sensor the board does not have. Opening it takes
+the whole camera stack down, and every app offers it as a switch target.
+
+Ignore ids at or above persist.vendor.camera.count so they are never
+enumerated in the first place.
+
+Change-Id: I6c8ff1a96c68b753c62be1826234019b6d813e1a
+---
+ .../common/CameraProviderManager.cpp                | 13 +++++++++++++
+ 1 file changed, 13 insertions(+)
+
+diff --git a/services/camera/libcameraservice/common/CameraProviderManager.cpp b/services/camera/libcameraservice/common/CameraProviderManager.cpp
+index 4705a45..84c85df 100644
+--- a/services/camera/libcameraservice/common/CameraProviderManager.cpp
++++ b/services/camera/libcameraservice/common/CameraProviderManager.cpp
+@@ -1564,6 +1564,19 @@ status_t CameraProviderManager::ProviderInfo::addDevice(const std::string& name,
+         return BAD_VALUE;
+     }
+ 
++    // Some HALs enumerate a sensor the board does not actually have, and opening
++    // it takes the whole camera stack down. Allow the usable count to be capped.
++    {
++        char value[PROPERTY_VALUE_MAX];
++        if (property_get("persist.vendor.camera.count", value, nullptr) > 0) {
++            int32_t limit = atoi(value);
++            if (limit > 0 && atoi(id.c_str()) >= limit) {
++                ALOGI("%s: ignoring camera %s, limited to %d", __FUNCTION__, id.c_str(), limit);
++                return BAD_VALUE;
++            }
++        }
++    }
++
+     std::unique_ptr<DeviceInfo> deviceInfo;
+     switch (major) {
+         case 1:
+-- 
+2.47.3
+

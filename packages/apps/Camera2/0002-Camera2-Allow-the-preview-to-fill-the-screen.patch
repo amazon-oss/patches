@@ -1,0 +1,158 @@
+From 8c5bf3bfa757a86b4a3935a541699c9c297db114 Mon Sep 17 00:00:00 2001
+From: R0rt1z2 <roger@r0rt1z2.com>
+Date: Fri, 4 Sep 2026 01:37:23 +0200
+Subject: [PATCH] Camera2: Allow the preview to fill the screen
+
+On displays whose aspect ratio is far from the sensor's, fitting the
+preview inside the viewfinder leaves a large empty band.
+
+Add preview_fills_screen, which covers the area instead and crops the
+overflow. Both the aspect ratio and the module supplied matrix paths are
+handled, since photo and video reach the transform differently.
+
+Change-Id: Ic5a4c4ed49389260dfa3ffe467a7447bb8b15c54
+---
+ res/values/bool.xml                           |  5 ++
+ src/com/android/camera/TextureViewHelper.java | 71 +++++++++++++++++--
+ 2 files changed, 71 insertions(+), 5 deletions(-)
+
+diff --git a/res/values/bool.xml b/res/values/bool.xml
+index 464842a..ee2ef67 100644
+--- a/res/values/bool.xml
++++ b/res/values/bool.xml
+@@ -15,4 +15,9 @@
+ -->
+ <resources>
+     <bool name="show_action_bar_title">false</bool>
++
++    <!-- Scale the preview to cover the whole preview area, cropping the edges,
++         instead of letterboxing it. For displays whose aspect ratio is far from
++         the sensor's. -->
++    <bool name="preview_fills_screen">false</bool>
+ </resources>
+\ No newline at end of file
+diff --git a/src/com/android/camera/TextureViewHelper.java b/src/com/android/camera/TextureViewHelper.java
+index 2125280..c3ad44a 100644
+--- a/src/com/android/camera/TextureViewHelper.java
++++ b/src/com/android/camera/TextureViewHelper.java
+@@ -54,6 +54,8 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener,
+     private int mHeight = 0;
+     private RectF mPreviewArea = new RectF();
+     private float mAspectRatio = MATCH_SCREEN;
++    private float mContentAspectRatio = MATCH_SCREEN;
++    private final boolean mFillScreen;
+     private boolean mAutoAdjustTransform = true;
+     private TextureView.SurfaceTextureListener mSurfaceTextureListener;
+ 
+@@ -85,6 +87,8 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener,
+                 .getInteger(R.integer.camera_mode_photo);
+         mCaptureIntentModeId = appController.getAndroidContext().getResources()
+                 .getInteger(R.integer.camera_mode_capture_intent);
++        mFillScreen = appController.getAndroidContext().getResources()
++                .getBoolean(R.bool.preview_fills_screen);
+     }
+ 
+     /**
+@@ -140,7 +144,8 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener,
+         if (aspectRatio < 1f) {
+             aspectRatio = 1f / aspectRatio;
+         }
+-        setAspectRatio(aspectRatio);
++        mContentAspectRatio = aspectRatio;
++        setAspectRatio(mFillScreen ? MATCH_SCREEN : aspectRatio);
+         updateTransform();
+     }
+ 
+@@ -209,14 +214,30 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener,
+         }
+         float aspectRatio = previewWidth / previewHeight;
+         aspectRatio = aspectRatio < 1 ? 1 / aspectRatio : aspectRatio;
+-        if (aspectRatio != mAspectRatio) {
++        if (mFillScreen) {
++            mContentAspectRatio = aspectRatio;
++            setAspectRatio(MATCH_SCREEN);
++        } else if (aspectRatio != mAspectRatio) {
+             setAspectRatio(aspectRatio);
+         }
+ 
+         RectF previewAreaBasedOnAspectRatio = mCaptureLayoutHelper.getPreviewRect();
+         Matrix addtionalTransform = new Matrix();
+-        addtionalTransform.setRectToRect(previewRect, previewAreaBasedOnAspectRatio,
+-                Matrix.ScaleToFit.CENTER);
++        if (mFillScreen) {
++            // Cover the area rather than fit inside it, so the preview reaches
++            // the edges and the overflow is cropped.
++            float scale = Math.max(
++                    previewAreaBasedOnAspectRatio.width() / previewRect.width(),
++                    previewAreaBasedOnAspectRatio.height() / previewRect.height());
++            addtionalTransform.setScale(scale, scale,
++                    previewRect.centerX(), previewRect.centerY());
++            addtionalTransform.postTranslate(
++                    previewAreaBasedOnAspectRatio.centerX() - previewRect.centerX(),
++                    previewAreaBasedOnAspectRatio.centerY() - previewRect.centerY());
++        } else {
++            addtionalTransform.setRectToRect(previewRect, previewAreaBasedOnAspectRatio,
++                    Matrix.ScaleToFit.CENTER);
++        }
+         matrix.postConcat(addtionalTransform);
+         mPreview.setTransform(matrix);
+         updatePreviewArea(matrix);
+@@ -330,7 +351,19 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener,
+             return false;
+         }
+ 
+-        if (mAspectRatio == MATCH_SCREEN || mAspectRatio < 0 || mWidth == 0 || mHeight == 0) {
++        if (mWidth == 0 || mHeight == 0) {
++            return true;
++        }
++
++        if (mFillScreen) {
++            if (mContentAspectRatio > 0) {
++                mPreview.setTransform(getFillScreenTransform());
++                updatePreviewArea(new Matrix());
++            }
++            return true;
++        }
++
++        if (mAspectRatio == MATCH_SCREEN || mAspectRatio < 0) {
+             return true;
+         }
+ 
+@@ -373,6 +406,34 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener,
+         return true;
+     }
+ 
++    /**
++     * The texture is stretched onto the whole view by default, which distorts it
++     * when the view and the preview disagree on aspect ratio. Scale the axis that
++     * was squashed back up so the preview covers the view with its own aspect
++     * ratio intact, and let the overflow fall outside.
++     */
++    private Matrix getFillScreenTransform() {
++        float viewAspectRatio = (float) Math.max(mWidth, mHeight)
++                / (float) Math.min(mWidth, mHeight);
++        Matrix matrix = new Matrix();
++        if (mContentAspectRatio > viewAspectRatio) {
++            float scale = mContentAspectRatio / viewAspectRatio;
++            if (mWidth > mHeight) {
++                matrix.setScale(scale, 1f, mWidth / 2f, mHeight / 2f);
++            } else {
++                matrix.setScale(1f, scale, mWidth / 2f, mHeight / 2f);
++            }
++        } else {
++            float scale = viewAspectRatio / mContentAspectRatio;
++            if (mWidth > mHeight) {
++                matrix.setScale(1f, scale, mWidth / 2f, mHeight / 2f);
++            } else {
++                matrix.setScale(scale, 1f, mWidth / 2f, mHeight / 2f);
++            }
++        }
++        return matrix;
++    }
++
+     private void onPreviewAreaChanged(final RectF previewArea) {
+         // Notify listeners of preview area change
+         final List<PreviewStatusListener.PreviewAreaChangedListener> listeners =
+-- 
+2.47.3
+
