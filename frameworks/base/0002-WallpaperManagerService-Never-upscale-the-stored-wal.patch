@@ -1,0 +1,35 @@
+From a99e7f81761d7d79a48679e262810c5f9549bf4a Mon Sep 17 00:00:00 2001
+From: R0rt1z2 <roger@r0rt1z2.com>
+Date: Fri, 4 Sep 2026 23:29:47 +0200
+Subject: [PATCH] WallpaperManagerService: Never upscale the stored wallpaper
+
+The desired dimensions are square, max(w,h) on both axes, so on a
+landscape display the picker's screen-sized bitmap gets blown up here and
+shrunk again at draw time. Enlarging adds no detail, so only scale down.
+
+Change-Id: Iaa88cddd447bea80ba9ce33338d88bfc514e9ef1
+---
+ .../android/server/wallpaper/WallpaperManagerService.java  | 7 +++++--
+ 1 file changed, 5 insertions(+), 2 deletions(-)
+
+diff --git a/services/core/java/com/android/server/wallpaper/WallpaperManagerService.java b/services/core/java/com/android/server/wallpaper/WallpaperManagerService.java
+index ca018dc9..eab5759b 100644
+--- a/services/core/java/com/android/server/wallpaper/WallpaperManagerService.java
++++ b/services/core/java/com/android/server/wallpaper/WallpaperManagerService.java
+@@ -625,8 +625,11 @@ public class WallpaperManagerService extends IWallpaperManager.Stub
+                         || options.outWidth > cropHint.width());
+             }
+ 
+-            // scale if the crop height winds up not matching the recommended metrics
+-            needScale = wpData.mHeight != cropHint.height()
++            // scale if the crop height winds up not matching the recommended metrics.
++            // Only ever scale down: enlarging the source adds no detail, and on displays
++            // whose height is below the recommended (square) size it makes the picker's
++            // screen-sized bitmap get blown up here and shrunk again at draw time.
++            needScale = cropHint.height() > wpData.mHeight
+                     || cropHint.height() > GLHelper.getMaxTextureSize()
+                     || cropHint.width() > GLHelper.getMaxTextureSize();
+ 
+-- 
+2.47.3
+

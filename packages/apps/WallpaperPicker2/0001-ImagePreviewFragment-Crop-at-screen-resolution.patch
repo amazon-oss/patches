@@ -1,0 +1,72 @@
+From 617f2c95be423534e1015bc6049e262287941e04 Mon Sep 17 00:00:00 2001
+From: R0rt1z2 <roger@r0rt1z2.com>
+Date: Fri, 4 Sep 2026 23:29:48 +0200
+Subject: [PATCH] ImagePreviewFragment: Crop at screen resolution
+
+The crop was measured from the preview surface, so on displays where it
+is laid out much smaller than the screen the wallpaper was stored at
+preview size and stretched to fill the display.
+
+Scale the host size to screen pixels, and the zoom with it since the
+cropper divides the rect by it to get back to file coordinates.
+
+Change-Id: I247984ceb8a9785388f6a16efb7021aaf77573ed
+---
+ .../picker/ImagePreviewFragment.java          | 28 ++++++++++++++++---
+ 1 file changed, 24 insertions(+), 4 deletions(-)
+
+diff --git a/src/com/android/wallpaper/picker/ImagePreviewFragment.java b/src/com/android/wallpaper/picker/ImagePreviewFragment.java
+index 9ff7c98..f7892e1 100755
+--- a/src/com/android/wallpaper/picker/ImagePreviewFragment.java
++++ b/src/com/android/wallpaper/picker/ImagePreviewFragment.java
+@@ -416,15 +416,35 @@ public class ImagePreviewFragment extends PreviewFragment {
+         mFullResImageView.setScaleAndCenter(minWallpaperZoom, centerPosition);
+     }
+ 
++    /**
++     * The preview surface is laid out to fit the picker UI, so on displays where it ends up
++     * much smaller than the screen the crop would be taken at preview resolution and then
++     * stretched to fill the display. Work in screen pixels instead.
++     */
++    private float getPreviewToScreenScale() {
++        int surfaceWidth = mWallpaperSurface.getMeasuredWidth();
++        int surfaceHeight = mWallpaperSurface.getMeasuredHeight();
++        if (surfaceWidth <= 0 || surfaceHeight <= 0 || mScreenSize == null) {
++            return 1f;
++        }
++        return Math.max(1f, Math.min((float) mScreenSize.x / surfaceWidth,
++                (float) mScreenSize.y / surfaceHeight));
++    }
++
++    private float getCropScale() {
++        return mFullResImageView.getScale() * getPreviewToScreenScale();
++    }
++
+     private Rect calculateCropRect() {
+-        float wallpaperZoom = mFullResImageView.getScale();
+         Context context = requireContext().getApplicationContext();
++        float previewToScreen = getPreviewToScreenScale();
++        float wallpaperZoom = mFullResImageView.getScale() * previewToScreen;
+ 
+         Rect visibleFileRect = new Rect();
+         mFullResImageView.visibleFileRect(visibleFileRect);
+ 
+-        int cropWidth = mWallpaperSurface.getMeasuredWidth();
+-        int cropHeight = mWallpaperSurface.getMeasuredHeight();
++        int cropWidth = Math.round(mWallpaperSurface.getMeasuredWidth() * previewToScreen);
++        int cropHeight = Math.round(mWallpaperSurface.getMeasuredHeight() * previewToScreen);
+         int maxCrop = Math.max(cropWidth, cropHeight);
+         int minCrop = Math.min(cropWidth, cropHeight);
+         Point hostViewSize = new Point(cropWidth, cropHeight);
+@@ -440,7 +460,7 @@ public class ImagePreviewFragment extends PreviewFragment {
+     @Override
+     protected void setCurrentWallpaper(@Destination int destination) {
+         mWallpaperSetter.setCurrentWallpaper(getActivity(), mWallpaper, mWallpaperAsset,
+-                destination, mFullResImageView.getScale(), calculateCropRect(),
++                destination, getCropScale(), calculateCropRect(),
+                 new SetWallpaperCallback() {
+                     @Override
+                     public void onSuccess(WallpaperInfo wallpaperInfo) {
+-- 
+2.47.3
+
