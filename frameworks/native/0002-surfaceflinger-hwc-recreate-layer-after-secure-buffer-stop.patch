@@ -1,0 +1,91 @@
+From d33f5cd3f73180c13018205accb4de2675c9e64f Mon Sep 17 00:00:00 2001
+From: Florian Schmidt <flo.schmidt10@gmail.com>
+Date: Sun, 20 Sep 2026 20:01:12 +0200
+Subject: [PATCH] Workaround: recreate HWC layer when replacing secure buffer
+ with 1x1 placeholder buffer (disabled by default/flag gated)
+
+Change-Id: I1c9dba8f2c26b0bddafce229e836860735b592ba
+---
+ services/surfaceflinger/Android.bp           |  8 ++++-
+ services/surfaceflinger/BufferStateLayer.cpp | 32 ++++++++++++++++++++
+ 2 files changed, 39 insertions(+), 1 deletion(-)
+
+diff --git a/services/surfaceflinger/Android.bp b/services/surfaceflinger/Android.bp
+index 3da651e9fd..5faee807b6 100644
+--- a/services/surfaceflinger/Android.bp
++++ b/services/surfaceflinger/Android.bp
+@@ -11,7 +11,10 @@ soong_config_module_type {
+     name: "surfaceflinger_workarounds_cc_defaults",
+     module_type: "cc_defaults",
+     config_namespace: "surfaceflinger_workarounds",
+-    bool_variables: ["force_hwc_buffer_resubmit_video"],
++    bool_variables: [
++        "force_hwc_buffer_resubmit_video",
++        "force_hwc_layer_recreate_protected_to_1x1",
++    ],
+     properties: ["cppflags"],
+ }
+ 
+@@ -21,6 +24,9 @@ surfaceflinger_workarounds_cc_defaults {
+         force_hwc_buffer_resubmit_video: {
+             cppflags: ["-DSF_FORCE_HWC_BUFFER_RESUBMIT_VIDEO=1"],
+         },
++        force_hwc_layer_recreate_protected_to_1x1: {
++            cppflags: ["-DSF_FORCE_HWC_LAYER_RECREATE_PROTECTED_TO_1X1=1"],
++        },
+     },
+ }
+ 
+diff --git a/services/surfaceflinger/BufferStateLayer.cpp b/services/surfaceflinger/BufferStateLayer.cpp
+index 3875f151cb..bb5841f69a 100644
+--- a/services/surfaceflinger/BufferStateLayer.cpp
++++ b/services/surfaceflinger/BufferStateLayer.cpp
+@@ -34,6 +34,12 @@
+ #include "FrameTracer/FrameTracer.h"
+ #include "TimeStats/TimeStats.h"
+ 
++#ifdef SF_FORCE_HWC_LAYER_RECREATE_PROTECTED_TO_1X1
++#include <compositionengine/Output.h>
++#include <compositionengine/OutputLayer.h>
++#include <ftl/fake_guard.h>
++#endif
++
+ #define EARLY_RELEASE_ENABLED false
+ 
+ namespace android {
+@@ -696,6 +702,32 @@ status_t BufferStateLayer::updateActiveBuffer() {
+         decrementPendingBufferCount();
+     }
+ 
++#ifdef SF_FORCE_HWC_LAYER_RECREATE_PROTECTED_TO_1X1
++    // Workaround for mediatek HWC (or graphics allocator) weirdness: closing a video player without
++    // minimizing the app replaces that layer's secure buffer (Widevine) with a 1x1 pixel
++    // placeholder buffer, but this causes the secure buffer to not be freed until the layer is
++    // destroyed (eg. by minimizing the app). Workaround: destroy and recreate the layer manuall
++    if CC_UNLIKELY((mBufferInfo.mBuffer && (mBufferInfo.mBuffer->getUsage() & GRALLOC_USAGE_PROTECTED) != 0 &&
++        s.buffer->getWidth() == 1 && s.buffer->getHeight() == 1 &&
++        (s.buffer->getUsage() & GRALLOC_USAGE_PROTECTED) == 0)) {
++        ftl::FakeGuard guard(mFlinger->mStateLock);
++        // assumes single display device
++        const auto display = mFlinger->getDefaultDisplayDeviceLocked();
++        auto* outputLayer = display ? findOutputLayerForDisplay(display.get()) : nullptr;
++        const auto halDisplayId = outputLayer && outputLayer->getOutput().getDisplayId()
++                ? HalDisplayId::tryCast(*outputLayer->getOutput().getDisplayId())
++                : std::nullopt;
++        if (auto newHwcLayer =
++                    halDisplayId ? mFlinger->getHwComposer().createLayer(*halDisplayId) : nullptr) {
++            ALOGD("SF_FORCE_HWC_LAYER_RECREATE_PROTECTED_TO_1X1 BufferStateLayer::updateActiveBuffer replaced HWC layer for %s: "
++                  "newHwcLayer=0x%" PRIx64,
++                  getDebugName(), newHwcLayer->getId());
++            outputLayer->setHwcLayer(std::move(newHwcLayer));
++            mFlinger->scheduleRepaint();
++        }
++    }
++#endif
++
+     mPreviousReleaseCallbackId = {getCurrentBufferId(), mBufferInfo.mFrameNumber};
+     mBufferInfo.mBuffer = s.buffer;
+     mBufferInfo.mFence = s.acquireFence;
+-- 
+2.47.3
+
