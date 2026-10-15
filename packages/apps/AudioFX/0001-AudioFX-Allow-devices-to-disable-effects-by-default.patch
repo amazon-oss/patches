@@ -1,0 +1,82 @@
+From 36fc5860e0f3f42534a7afcb09f4e81601f46e62 Mon Sep 17 00:00:00 2001
+From: R0rt1z2 <roger@r0rt1z2.com>
+Date: Thu, 15 Oct 2026 11:49:03 +0200
+Subject: [PATCH] AudioFX: Allow devices to disable effects by default
+
+* Devices can now overlay config_enabledByDefault so AudioFX starts
+  with effects turned off on fresh installs.
+
+Change-Id: I19d7952bc957d17562f94faec0fe09c7445a19e4
+---
+ res/values/config.xml                                 |  8 ++++++++
+ .../audiofx/service/DevicePreferenceManager.java      | 11 +++++++----
+ 2 files changed, 15 insertions(+), 4 deletions(-)
+ create mode 100644 res/values/config.xml
+
+diff --git a/res/values/config.xml b/res/values/config.xml
+new file mode 100644
+index 0000000..95b23cf
+--- /dev/null
++++ b/res/values/config.xml
+@@ -0,0 +1,8 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++     SPDX-FileCopyrightText: The LineageOS Project
++     SPDX-License-Identifier: Apache-2.0
++-->
++<resources>
++    <bool name="config_enabledByDefault">true</bool>
++</resources>
+diff --git a/src/org/lineageos/audiofx/service/DevicePreferenceManager.java b/src/org/lineageos/audiofx/service/DevicePreferenceManager.java
+index 173e46e..489d71f 100644
+--- a/src/org/lineageos/audiofx/service/DevicePreferenceManager.java
++++ b/src/org/lineageos/audiofx/service/DevicePreferenceManager.java
+@@ -234,6 +234,9 @@ public class DevicePreferenceManager
+             return;
+         }
+ 
++        final boolean enabledByDefault =
++                mContext.getResources().getBoolean(R.bool.config_enabledByDefault);
++
+         // set up the builtin speaker configuration
+         final String smallSpeakers = getNonLocalizedString(R.string.small_speakers);
+         final List<String> presetNames = new ArrayList<String>(Arrays.asList(
+@@ -244,7 +247,7 @@ public class DevicePreferenceManager
+             // MaxxAudio defaults for builtin speaker:
+             // maxxvolume: on  maxxbass: 40%  maxxtreble: 32%
+             speakerPrefs.edit()
+-                    .putBoolean(DEVICE_AUDIOFX_GLOBAL_ENABLE, true)
++                    .putBoolean(DEVICE_AUDIOFX_GLOBAL_ENABLE, enabledByDefault)
+                     .putBoolean(DEVICE_AUDIOFX_MAXXVOLUME_ENABLE, true)
+                     .putBoolean(DEVICE_AUDIOFX_BASS_ENABLE, true)
+                     .putString(DEVICE_AUDIOFX_BASS_STRENGTH, "400")
+@@ -255,7 +258,7 @@ public class DevicePreferenceManager
+             // Defaults for headphones
+             // maxxvolume: on  maxxbass: 20%  maxxtreble: 40%  maxxspace: 20%
+             prefsFor(DEVICE_HEADSET).edit()
+-                    .putBoolean(DEVICE_AUDIOFX_GLOBAL_ENABLE, true)
++                    .putBoolean(DEVICE_AUDIOFX_GLOBAL_ENABLE, enabledByDefault)
+                     .putBoolean(DEVICE_AUDIOFX_MAXXVOLUME_ENABLE, true)
+                     .putBoolean(DEVICE_AUDIOFX_BASS_ENABLE, true)
+                     .putString(DEVICE_AUDIOFX_BASS_STRENGTH, "200")
+@@ -269,7 +272,7 @@ public class DevicePreferenceManager
+             // bass boost: 15%  virtualizer: 20%  preset: FLAT
+             int flat = findInList(getNonLocalizedString(R.string.flat), presetNames);
+             prefsFor(DEVICE_HEADSET).edit()
+-                    .putBoolean(DEVICE_AUDIOFX_GLOBAL_ENABLE, true)
++                    .putBoolean(DEVICE_AUDIOFX_GLOBAL_ENABLE, enabledByDefault)
+                     .putBoolean(DEVICE_AUDIOFX_BASS_ENABLE, true)
+                     .putString(DEVICE_AUDIOFX_BASS_STRENGTH, "150")
+                     .putBoolean(DEVICE_AUDIOFX_VIRTUALIZER_ENABLE, true)
+@@ -300,7 +303,7 @@ public class DevicePreferenceManager
+         int idx = findInList(smallSpeakers, presetNames);
+         if (idx >= 0) {
+             speakerPrefs.edit()
+-                .putBoolean(DEVICE_AUDIOFX_GLOBAL_ENABLE, true)
++                .putBoolean(DEVICE_AUDIOFX_GLOBAL_ENABLE, enabledByDefault)
+                 .putString(DEVICE_AUDIOFX_EQ_PRESET, String.valueOf(idx))
+                 .commit();
+         }
+-- 
+2.47.3
+
