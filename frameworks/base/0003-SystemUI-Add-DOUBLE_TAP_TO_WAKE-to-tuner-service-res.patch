@@ -1,0 +1,29 @@
+From c4759e74bee5b482f8232d01b6bed1c99bdcb12d Mon Sep 17 00:00:00 2001
+From: LuK1337 <priv.luk@gmail.com>
+Date: Wed, 5 Feb 2025 20:03:49 +0100
+Subject: [PATCH] SystemUI: Add DOUBLE_TAP_TO_WAKE to tuner service reset
+ exceptions
+
+This unbreaks `def_double_tap_to_wake`.
+
+Test: Run `settings get secure double_tap_to_wake` after first boot.
+Change-Id: I0c806541d94c794386e09b8547c99b22b4c759a0
+---
+ .../src/com/android/systemui/tuner/TunerServiceImpl.java         | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/packages/SystemUI/src/com/android/systemui/tuner/TunerServiceImpl.java b/packages/SystemUI/src/com/android/systemui/tuner/TunerServiceImpl.java
+index 868bcb49..3e502acb 100644
+--- a/packages/SystemUI/src/com/android/systemui/tuner/TunerServiceImpl.java
++++ b/packages/SystemUI/src/com/android/systemui/tuner/TunerServiceImpl.java
+@@ -66,6 +66,7 @@ public class TunerServiceImpl extends TunerService {
+     // shouldn't be reset with tuner settings.
+     private static final String[] RESET_BLACKLIST = new String[] {
+             QSTileHost.TILES_SETTING,
++            Settings.Secure.DOUBLE_TAP_TO_WAKE,
+             Settings.Secure.DOZE_ALWAYS_ON,
+             Settings.Secure.MEDIA_CONTROLS_RESUME,
+             StatusBar.SCREEN_BRIGHTNESS_MODE,
+-- 
+2.47.3
+
