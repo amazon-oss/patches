@@ -1,0 +1,36 @@
+From e33b74edfa8da8cdcbe44a4a625d480413198325 Mon Sep 17 00:00:00 2001
+From: R0rt1z2 <roger@r0rt1z2.com>
+Date: Wed, 21 Oct 2026 20:10:54 +0200
+Subject: [PATCH] nl80211: Set socket owner without control port
+
+cfg80211 needs connection ownership for SAE external authentication,
+but it was only requested on drivers with control port over nl80211.
+
+Change-Id: I5631bec28e9893c232905f6fa6ef9d801a50ca8b
+Signed-off-by: R0rt1z2 <roger@r0rt1z2.com>
+---
+ src/drivers/driver_nl80211.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/src/drivers/driver_nl80211.c b/src/drivers/driver_nl80211.c
+index 34bd7ec..0f58e2c 100644
+--- a/src/drivers/driver_nl80211.c
++++ b/src/drivers/driver_nl80211.c
+@@ -463,10 +463,13 @@ static int send_and_recv_msgs_owner(struct wpa_driver_nl80211_data *drv,
+ 	 * attributes, but they have to be performed on the socket, which has
+ 	 * the connection owner property set in the kernel.
+ 	 */
++	if (handle && set_owner &&
++	    nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER))
++		return -1;
++
+ 	if ((drv->capa.flags2 & WPA_DRIVER_FLAGS2_CONTROL_PORT_RX) &&
+ 	    handle && set_owner &&
+ 	    (nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT_OVER_NL80211) ||
+-	     nla_put_flag(msg, NL80211_ATTR_SOCKET_OWNER) ||
+ 	     nla_put_u16(msg, NL80211_ATTR_CONTROL_PORT_ETHERTYPE, ETH_P_PAE) ||
+ 	     nla_put_flag(msg, NL80211_ATTR_CONTROL_PORT_NO_PREAUTH)))
+ 		return -1;
+-- 
+2.47.3
+
