@@ -1,0 +1,30 @@
+From 4745d80bd67d0dbd6a871a8ec5e5a633f5cb0e6a Mon Sep 17 00:00:00 2001
+From: R0rt1z2 <roger@r0rt1z2.com>
+Date: Sun, 8 Nov 2026 23:07:37 +0100
+Subject: [PATCH] btif_hh: Remember the pending outgoing connection
+
+The incoming connection check only accepts a device that was added with
+reconnects allowed or that matches the pending connection address, but
+nothing set the latter, so connecting to a newly bonded HID device was
+always rejected.
+
+Change-Id: I2956e67ec94f10a23eefbb9b1d20799b54464747
+---
+ btif/src/btif_hh.c | 1 +
+ 1 file changed, 1 insertion(+)
+
+diff --git a/btif/src/btif_hh.c b/btif/src/btif_hh.c
+index bede375..be28786 100644
+--- a/btif/src/btif_hh.c
++++ b/btif/src/btif_hh.c
+@@ -689,6 +689,7 @@ bt_status_t btif_hh_connect(bt_bdaddr_t *bd_addr)
+      pagescan mode, we will do 2 retries to connect before giving up */
+     tBTA_SEC sec_mask = BTUI_HH_SECURITY;
+     btif_hh_cb.status = BTIF_HH_DEV_CONNECTING;
++    btif_hh_cb.pending_conn_address = *bd_addr;
+     BTA_HhOpen(*bda, BTA_HH_PROTO_RPT_MODE, sec_mask);
+ 
+     HAL_CBACK(bt_hh_callbacks, connection_state_cb, bd_addr, BTHH_CONN_STATE_CONNECTING);
+-- 
+2.47.3
+
