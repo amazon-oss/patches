@@ -1,0 +1,59 @@
+From 727ee758e4176f23068c96fba4026b855f4dcd0b Mon Sep 17 00:00:00 2001
+From: R0rt1z2 <roger@r0rt1z2.com>
+Date: Mon, 9 Nov 2026 02:37:22 +0100
+Subject: [PATCH] SetupWizard: Don't treat microG as GMS on ATV
+
+Change-Id: Ia2bf1c8d5b629c010d06507fa6299d928efe6e56
+---
+ .../setupwizard/util/SetupWizardUtils.java         | 14 +++++++++++++-
+ 1 file changed, 13 insertions(+), 1 deletion(-)
+
+diff --git a/src/com/cyanogenmod/setupwizard/util/SetupWizardUtils.java b/src/com/cyanogenmod/setupwizard/util/SetupWizardUtils.java
+index c84db47..fabad06 100644
+--- a/src/com/cyanogenmod/setupwizard/util/SetupWizardUtils.java
++++ b/src/com/cyanogenmod/setupwizard/util/SetupWizardUtils.java
+@@ -26,6 +26,7 @@ import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+ import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
+ import static android.content.pm.PackageManager.DONT_KILL_APP;
+ import static android.content.pm.PackageManager.GET_ACTIVITIES;
++import static android.content.pm.PackageManager.GET_META_DATA;
+ import static android.content.pm.PackageManager.GET_RECEIVERS;
+ import static android.content.pm.PackageManager.GET_SERVICES;
+ 
+@@ -38,6 +39,7 @@ import android.content.ContentResolver;
+ import android.content.Context;
+ import android.content.Intent;
+ import android.content.SharedPreferences;
++import android.content.pm.ApplicationInfo;
+ import android.content.pm.ComponentInfo;
+ import android.content.pm.PackageInfo;
+ import android.content.pm.PackageManager;
+@@ -186,6 +188,16 @@ public class SetupWizardUtils {
+         return false;
+     }
+ 
++    private static boolean isMicroG(Context context) {
++        try {
++            ApplicationInfo info = context.getPackageManager()
++                    .getApplicationInfo(GMS_PACKAGE, GET_META_DATA);
++            return info.metaData != null && info.metaData.containsKey("fake-signature");
++        } catch (PackageManager.NameNotFoundException e) {
++            return false;
++        }
++    }
++
+     public static boolean isPackageInstalled(Context context, String packageName) {
+         PackageManager pm = context.getPackageManager();
+         try {
+@@ -260,7 +272,7 @@ public class SetupWizardUtils {
+         // Google's ATV SUW is shipped as it requires platform signature.
+         // Disable it if GMS is not installed by user.
+         if (hasLeanback(context) &&
+-            !PackageManagerUtils.isAppInstalled(context, GMS_PACKAGE) &&
++            (!PackageManagerUtils.isAppInstalled(context, GMS_PACKAGE) || isMicroG(context)) &&
+             PackageManagerUtils.isAppInstalled(context, GMS_TV_SUW_PACKAGE)) {
+             disableApplication(context, GMS_TV_SUW_PACKAGE);
+         }
+-- 
+2.47.3
+
