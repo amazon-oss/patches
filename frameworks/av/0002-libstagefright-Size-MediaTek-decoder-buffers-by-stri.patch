@@ -1,0 +1,45 @@
+From f07dd0d2a4dfbdd565345ff066c7c63bec21fe9a Mon Sep 17 00:00:00 2001
+From: R0rt1z2 <roger@r0rt1z2.com>
+Date: Mon, 9 Nov 2026 18:47:11 +0100
+Subject: [PATCH] libstagefright: Size MediaTek decoder buffers by stride and
+ slice height
+
+MediaTek decoders fill aligned frames, and the display blitter rejects
+block format buffers whose height is not 32 aligned.
+
+Change-Id: I3362feda26644b740e23614ea811cbbbfa4338e2
+---
+ media/libstagefright/ACodec.cpp | 14 ++++++++++++--
+ 1 file changed, 12 insertions(+), 2 deletions(-)
+
+diff --git a/media/libstagefright/ACodec.cpp b/media/libstagefright/ACodec.cpp
+index 664507b84..b709c1df4 100644
+--- a/media/libstagefright/ACodec.cpp
++++ b/media/libstagefright/ACodec.cpp
+@@ -1043,11 +1043,21 @@ status_t ACodec::setupNativeWindowSizeFormatAndUsage(
+     setNativeWindowColorFormat(eNativeColorFormat);
+ #endif
+ 
++    OMX_U32 width = def.format.video.nFrameWidth;
++    OMX_U32 height = def.format.video.nFrameHeight;
++#ifdef MTK_HARDWARE
++    if (!strncmp(mComponentName.c_str(), "OMX.MTK.", 8)
++            && def.format.video.nStride && def.format.video.nSliceHeight) {
++        width = def.format.video.nStride;
++        height = def.format.video.nSliceHeight;
++    }
++#endif
++
+     ALOGV("gralloc usage: %#x(OMX) => %#x(ACodec)", omxUsage, usage);
+     err = setNativeWindowSizeFormatAndUsage(
+             nativeWindow,
+-            def.format.video.nFrameWidth,
+-            def.format.video.nFrameHeight,
++            width,
++            height,
+ #ifdef USE_SAMSUNG_COLORFORMAT
+             eNativeColorFormat,
+ #else
+-- 
+2.47.3
+
