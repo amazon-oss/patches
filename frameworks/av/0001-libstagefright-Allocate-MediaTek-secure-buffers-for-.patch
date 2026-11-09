@@ -1,0 +1,58 @@
+From 54dc17778b6e8fb5aacaeccc79f0f17fd70d8a34 Mon Sep 17 00:00:00 2001
+From: R0rt1z2 <roger@r0rt1z2.com>
+Date: Mon, 9 Nov 2026 03:40:41 +0100
+Subject: [PATCH] libstagefright: Allocate MediaTek secure buffers for
+ protected output
+
+MediaTek gralloc only backs protected buffers with TEE memory when the
+private secure usage bit is set too, the secure decoders fault without it.
+
+Change-Id: Ic8f8f06fbfc898f7627eb63646269ca642e25c39
+---
+ media/libstagefright/ACodec.cpp | 7 +++++++
+ media/libstagefright/Android.mk | 4 ++++
+ 2 files changed, 11 insertions(+)
+
+diff --git a/media/libstagefright/ACodec.cpp b/media/libstagefright/ACodec.cpp
+index a11494d63..664507b84 100644
+--- a/media/libstagefright/ACodec.cpp
++++ b/media/libstagefright/ACodec.cpp
+@@ -91,6 +91,10 @@ enum {
+     kMaxIndicesToCheck = 32, // used when enumerating supported formats and profiles
+ };
+ 
++#ifdef MTK_SECURE_VIDEO_PATH
++static const OMX_U32 kGrallocUsageSecure = 0x01000000;
++#endif
++
+ // OMX errors are directly mapped into status_t range if
+ // there is no corresponding MediaError status code.
+ // Use the statusFromOMXError(int32_t omxError) function.
+@@ -1023,6 +1027,9 @@ status_t ACodec::setupNativeWindowSizeFormatAndUsage(
+ 
+     if (mFlags & kFlagIsGrallocUsageProtected) {
+         usage |= GRALLOC_USAGE_PROTECTED;
++#ifdef MTK_SECURE_VIDEO_PATH
++        usage |= kGrallocUsageSecure;
++#endif
+     }
+ 
+     usage |= kVideoGrallocUsage;
+diff --git a/media/libstagefright/Android.mk b/media/libstagefright/Android.mk
+index e708f68ae..64a320972 100644
+--- a/media/libstagefright/Android.mk
++++ b/media/libstagefright/Android.mk
+@@ -165,6 +165,10 @@ ifeq ($(TARGET_OMX_LEGACY_RESCALING),true)
+ LOCAL_CFLAGS += -DUSE_LEGACY_RESCALING
+ endif
+ 
++ifeq ($(TARGET_USES_MTK_SECURE_VIDEO_PATH),true)
++LOCAL_CFLAGS += -DMTK_SECURE_VIDEO_PATH
++endif
++
+ LOCAL_CFLAGS += -Wno-multichar -Werror -Wno-error=deprecated-declarations -Wall
+ 
+ LOCAL_C_INCLUDES += $(call project-path-for,qcom-media)/mm-core/inc
+-- 
+2.47.3
+
